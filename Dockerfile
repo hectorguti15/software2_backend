@@ -9,8 +9,6 @@ WORKDIR /app
 
 # Copiar archivos de dependencias
 COPY package*.json ./
-
-# Copiar migraciones y esquema de Prisma antes de npm install
 COPY prisma ./prisma/
 
 # Instalar dependencias
@@ -25,10 +23,7 @@ RUN npx prisma generate
 # Compilar TypeScript
 RUN npm run build
 
-# 🔥 Ejecutar migraciones en el build (no requiere pagar nada)
-RUN npx prisma migrate deploy
-
 EXPOSE 3000
 
-# Iniciar servidor
-CMD ["npm", "run", "start"]
+# 🔥 EJECUTAR MIGRACIONES SIEMPRE ANTES DE LEVANTAR EL SERVIDOR
+CMD npx prisma migrate deploy && npm run start
