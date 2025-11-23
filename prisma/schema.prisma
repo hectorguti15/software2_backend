@@ -1,0 +1,221 @@
+// Prisma Schema para ULima App
+// Basado en las entidades del proyecto Flutter
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USUARIOS ====================
+enum RolUsuario {
+  alumno
+  profesor
+  delegado
+}
+
+model Usuario {
+  id        String      @id @default(uuid())
+  nombre    String
+  email     String      @unique
+  rol       RolUsuario  @default(alumno)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Relaciones
+  pedidos           Pedido[]
+  resenas           Resena[]
+  mensajes          Mensaje[]
+  materiales        Material[]
+  eventos           Evento[]
+  usuarioSecciones  UsuarioSeccion[]
+
+  @@map("usuarios")
+}
+
+// ==================== MENÚ ====================
+model MenuItem {
+  id          String   @id @default(uuid())
+  nombre      String
+  descripcion String
+  imagenUrl   String
+  precio      Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  pedidoItems PedidoItem[]
+  resenas     Resena[]
+
+  @@map("menu_items")
+}
+
+// ==================== PEDIDOS ====================
+model Pedido {
+  id        String       @id @default(uuid())
+  codigo    String       @unique
+  fecha     DateTime     @default(now())
+  total     Float
+  usuarioId String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relaciones
+  usuario Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  items   PedidoItem[]
+
+  @@map("pedidos")
+}
+
+model PedidoItem {
+  id        String   @id @default(uuid())
+  nombre    String
+  cantidad  Int
+  precio    Float
+  pedidoId  String
+  menuItemId String?
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@map("pedido_items")
+}
+
+// ==================== RESEÑAS ====================
+model Resena {
+  id           String   @id @default(uuid())
+  productId    String
+  calificacion Float
+  usuarioId    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  menuItem    MenuItem      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  comentarios Comentario[]
+
+  @@map("resenas")
+}
+
+model Comentario {
+  id           String   @id @default(uuid())
+  comentario   String
+  calificacion Float
+  resenaId     String
+  createdAt    DateTime @default(now())
+
+  // Relaciones
+  resena Resena @relation(fields: [resenaId], references: [id], onDelete: Cascade)
+
+  @@map("comentarios")
+}
+
+// ==================== AULA VIRTUAL ====================
+
+// Sección (Curso)
+model Seccion {
+  id             String   @id @default(uuid())
+  nombre         String
+  codigo         String   @unique
+  cursoNombre    String
+  profesorNombre String
+  delegadoNombre String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relaciones
+  mensajes         Mensaje[]
+  materiales       Material[]
+  eventos          Evento[]
+  usuarioSecciones UsuarioSeccion[]
+
+  @@map("secciones")
+}
+
+// Relación N-N entre Usuario y Seccion (HU01: asignación automática)
+model UsuarioSeccion {
+  id         String   @id @default(uuid())
+  usuarioId  String
+  seccionId  String
+  createdAt  DateTime @default(now())
+
+  // Relaciones
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  seccion Seccion @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, seccionId])
+  @@map("usuario_secciones")
+}
+
+// Mensajes del chat (HU02, HU03)
+model Mensaje {
+  id         String   @id @default(uuid())
+  contenido  String
+  autorId    String
+  autorNombre String
+  seccionId  String
+  esAnuncio  Boolean  @default(false) // HU03: anuncios de profesor/delegado
+  fecha      DateTime @default(now())
+
+  // Relaciones
+  autor   Usuario @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  seccion Seccion @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+
+  @@map("mensajes")
+}
+
+// Materiales compartidos (HU04, HU05)
+enum TipoMaterial {
+  pdf
+  video
+  imagen
+  documento
+  otro
+}
+
+model Material {
+  id          String        @id @default(uuid())
+  nombre      String
+  tipo        TipoMaterial
+  url         String
+  autorId     String
+  autorNombre String
+  seccionId   String
+  fechaSubida DateTime      @default(now())
+
+  // Relaciones
+  autor   Usuario @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  seccion Seccion @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+
+  @@map("materiales")
+}
+
+// Eventos del calendario (HU06)
+enum TipoEvento {
+  entrega
+  evaluacion
+  evento
+}
+
+model Evento {
+  id          String      @id @default(uuid())
+  titulo      String
+  descripcion String
+  fecha       DateTime
+  tipo        TipoEvento
+  autorId     String
+  seccionId   String
+  createdAt   DateTime    @default(now())
+
+  // Relaciones
+  autor   Usuario @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  seccion Seccion @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+
+  @@map("eventos")
+}

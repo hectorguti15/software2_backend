@@ -1,0 +1,106 @@
+================================================================================
+  BACKEND ULIMA - INICIO RAPIDO
+================================================================================
+
+ESTADO ACTUAL: ✅ TODO FUNCIONANDO
+
+Contenedores corriendo:
+  - ulima_postgres (PostgreSQL) ✅ Up 
+  - ulima_api (Node.js API)     ✅ Up 
+
+Base de datos: ✅ Poblada con datos de ejemplo
+
+================================================================================
+  COMO USAR
+================================================================================
+
+PRIMERA VEZ:
+  1. Ejecuta: start-docker.bat
+  2. Ejecuta: migrate-and-seed.bat
+  3. Abre: http://localhost:3000/health
+
+SIGUIENTES VECES:
+  1. Ejecuta: docker-compose up -d
+  2. Listo!
+
+VERIFICAR QUE FUNCIONA:
+  - Ejecuta: test-api.bat
+  - O abre: http://localhost:3000/health
+
+================================================================================
+  ENDPOINTS PRINCIPALES
+================================================================================
+
+Base URL: http://localhost:3000/api
+
+  GET  /menu                     → Listar menú
+  GET  /menu/:id                 → Detalle de plato
+  POST /pedidos                  → Crear pedido
+  GET  /pedidos                  → Historial
+  GET  /usuarios                 → Listar usuarios
+  GET  /usuarios/actual          → Usuario actual
+  GET  /resenas/:productId       → Reseñas
+  POST /resenas                  → Agregar reseña
+  
+  AULA VIRTUAL:
+  GET  /aula-virtual/usuarios/:id/secciones
+  GET  /aula-virtual/secciones/:id/mensajes
+  POST /aula-virtual/secciones/:id/mensajes
+  GET  /aula-virtual/secciones/:id/materiales
+  POST /aula-virtual/secciones/:id/materiales
+  GET  /aula-virtual/secciones/:id/eventos
+  POST /aula-virtual/secciones/:id/eventos
+
+================================================================================
+  PARA FLUTTER
+================================================================================
+
+Configurar baseUrl:
+  Android Emulator: http://10.0.2.2:3000/api
+  iOS Simulator:    http://localhost:3000/api
+  Dispositivo Real: http://[TU_IP]:3000/api
+
+================================================================================
+  COMANDOS UTILES
+================================================================================
+
+Ver logs:              docker-compose logs -f api
+Reiniciar API:         docker-compose restart api
+Detener todo:          docker-compose down
+Estado contenedores:   docker-compose ps
+
+================================================================================
+  SCRIPTS DISPONIBLES
+================================================================================
+
+  start-docker.bat         → Iniciar backend completo
+  migrate-and-seed.bat     → Preparar base de datos
+  test-api.bat             → Probar endpoints
+  install-local.bat        → Instalar deps locales (opcional)
+
+================================================================================
+  DOCUMENTACION
+================================================================================
+
+  README.md              → Documentación completa
+  SOLUCION_ERRORES.md    → Solución de problemas
+  API_ENDPOINTS.md       → Especificación de API
+  ARQUITECTURA.md        → Diseño técnico
+  RESUMEN.md             → Estado actual detallado
+
+================================================================================
+  PROBLEMA RESUELTO
+================================================================================
+
+Error: "Container is restarting"
+Causa: Faltaba OpenSSL en imagen Alpine
+Solucion: Cambiado a node:20-slim (Debian)
+Estado: ✅ RESUELTO
+
+================================================================================
+
+¿Todo funcionando? → Lee RESUMEN.md para más detalles
+¿Problemas?        → Lee SOLUCION_ERRORES.md
+¿Integrar Flutter? → Lee API_ENDPOINTS.md
+
+================================================================================
