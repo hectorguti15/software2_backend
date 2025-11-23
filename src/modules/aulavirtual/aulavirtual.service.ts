@@ -12,7 +12,7 @@ interface CreateMensajeDto {
 
 interface CreateMaterialDto {
   nombre: string;
-  tipo: TipoMaterial;
+  tipo: TipoMaterial | string; // Acepta string para validar y convertir
   url: string;
   autorId: string;
   autorNombre: string;
@@ -21,8 +21,8 @@ interface CreateMaterialDto {
 interface CreateEventoDto {
   titulo: string;
   descripcion: string;
-  fecha: Date;
-  tipo: TipoEvento;
+  fecha: Date | string; // Acepta string (ISO 8601) o Date
+  tipo: TipoEvento | string; // Acepta string para validar y convertir
   autorId: string;
 }
 
@@ -159,25 +159,47 @@ export class AulavirtualService {
   // POST /api/aula-virtual/secciones/:seccionId/materiales
   // HU04: Subir material (profesor/delegado)
   async subirMaterial(seccionId: string, data: CreateMaterialDto) {
+    // Validar campos obligatorios
+    if (!data.nombre || !data.tipo || !data.url || !data.autorId || !data.autorNombre) {
+      throw new AppError('Faltan campos obligatorios: nombre, tipo, url, autorId, autorNombre', 400);
+    }
+
     const seccion = await prisma.seccion.findUnique({ where: { id: seccionId } });
     if (!seccion) {
       throw new AppError('Sección no encontrada', 404);
     }
 
+    // Verificar que el usuario existe
+    const usuario = await prisma.usuario.findUnique({ where: { id: data.autorId } });
+    if (!usuario) {
+      throw new AppError('Usuario (autor) no encontrado', 404);
+    }
+
     // TODO: Verificar que el usuario tiene permisos (profesor/delegado)
 
-    const material = await prisma.material.create({
-      data: {
-        nombre: data.nombre,
-        tipo: data.tipo,
-        url: data.url,
-        autorId: data.autorId,
-        autorNombre: data.autorNombre,
-        seccionId,
-      },
-    });
+    // Validar que el tipo sea válido
+    const tiposValidos = ['pdf', 'video', 'imagen', 'documento', 'otro'];
+    if (!tiposValidos.includes(data.tipo.toLowerCase())) {
+      throw new AppError(`Tipo de material inválido. Debe ser uno de: ${tiposValidos.join(', ')}`, 400);
+    }
 
-    return material;
+    try {
+      const material = await prisma.material.create({
+        data: {
+          nombre: data.nombre,
+          tipo: data.tipo as TipoMaterial,
+          url: data.url,
+          autorId: data.autorId,
+          autorNombre: data.autorNombre,
+          seccionId,
+        },
+      });
+
+      return material;
+    } catch (error: any) {
+      console.error('[subirMaterial] Error al crear material en DB:', error);
+      throw new AppError(`Error al guardar material: ${error.message}`, 500);
+    }
   }
 
   // ==================== EVENTOS ====================
@@ -196,24 +218,66 @@ export class AulavirtualService {
   // POST /api/aula-virtual/secciones/:seccionId/eventos
   // HU04, HU06: Crear evento (profesor/delegado)
   async crearEvento(seccionId: string, data: CreateEventoDto) {
+    // Validar campos obligatorios
+    if (!data.titulo || !data.descripcion || !data.fecha || !data.tipo || !data.autorId) {
+      throw new AppError('Faltan campos obligatorios: titulo, descripcion, fecha, tipo, autorId', 400);
+    }
+
     const seccion = await prisma.seccion.findUnique({ where: { id: seccionId } });
     if (!seccion) {
       throw new AppError('Sección no encontrada', 404);
     }
 
+    // Verificar que el usuario existe
+    const usuario = await prisma.usuario.findUnique({ where: { id: data.autorId } });
+    if (!usuario) {
+      throw new AppError('Usuario (autor) no encontrado', 404);
+    }
+
     // TODO: Verificar que el usuario tiene permisos (profesor/delegado)
 
-    const evento = await prisma.evento.create({
-      data: {
-        titulo: data.titulo,
-        descripcion: data.descripcion,
-        fecha: data.fecha,
-        tipo: data.tipo,
-        autorId: data.autorId,
-        seccionId,
-      },
-    });
+    // Convertir fecha de string a Date si es necesario
+    let fechaDate: Date;
+    if (typeof data.fecha === 'string') {
+      // Normalizar formato ISO 8601 (eliminar microsegundos si existen)
+      let fechaString = data.fecha;
+      // Si tiene microsegundos (más de 3 dígitos después del punto), truncar a milisegundos
+      fechaString = fechaString.replace(/(\.\d{3})\d+/, '$1');
+      // Asegurar que termine en Z si no tiene timezone
+      if (!fechaString.endsWith('Z') && !fechaString.includes('+') && !fechaString.includes('-', 10)) {
+        fechaString += 'Z';
+      }
+      
+      fechaDate = new Date(fechaString);
+      if (isNaN(fechaDate.getTime())) {
+        throw new AppError('Fecha inválida. Use formato ISO 8601', 400);
+      }
+    } else {
+      fechaDate = data.fecha;
+    }
 
-    return evento;
+    // Validar que el tipo sea válido
+    const tiposValidos = ['entrega', 'evaluacion', 'evento'];
+    if (!tiposValidos.includes(data.tipo.toLowerCase())) {
+      throw new AppError(`Tipo de evento inválido. Debe ser uno de: ${tiposValidos.join(', ')}`, 400);
+    }
+
+    try {
+      const evento = await prisma.evento.create({
+        data: {
+          titulo: data.titulo,
+          descripcion: data.descripcion,
+          fecha: fechaDate,
+          tipo: data.tipo as TipoEvento,
+          autorId: data.autorId,
+          seccionId,
+        },
+      });
+
+      return evento;
+    } catch (error: any) {
+      console.error('[crearEvento] Error al crear evento en DB:', error);
+      throw new AppError(`Error al guardar evento: ${error.message}`, 500);
+    }
   }
 }

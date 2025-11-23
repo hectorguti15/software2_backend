@@ -27,8 +27,14 @@ export const errorHandler = (
 
   // Error desconocido
   console.error('ERROR 💥:', err);
+  console.error('Stack:', err.stack);
+  
+  // En desarrollo, mostrar más detalles
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  
   return res.status(500).json({
     success: false,
-    message: 'Error interno del servidor',
+    message: isDevelopment && err.message ? err.message : 'Error interno del servidor',
+    ...(isDevelopment && { error: err.message, stack: err.stack }),
   });
 };
